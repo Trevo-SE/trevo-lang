@@ -1,0 +1,19 @@
+stdio import "stdlib/stdio.tr"
+time import "stdlib/time.tr"
+
+. use stdio stdout
+. use time sleep_ms
+
+x int   0
+
+. while 1
+    . stdout "\rHello World,\t Hi threre\n"
+    . sleep_ms   1000
+. end
+
+//this is a commentary
+// with space at start
+f2 float 2.4     // and a description
+_he2a array
+    * type int
+    * size 8

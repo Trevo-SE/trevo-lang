@@ -1,0 +1,29 @@
+stdio_lib import "TuMStdio.tlib"
+
+stdout func
+    * arg buffer array
+        * arg * char
+        * arg * 128
+
+    $ push buffer
+    $ push stdio_lib TuMStdioOut
+. end
+
+flush func
+    $ push stdio_lib TuMStdioFlush
+. end
+
+stdin func
+    * arg length int
+    * ret array
+        * ret char
+        * ret 128
+
+    buffer array char 128
+
+    $ push length
+    $ push stdio_lib TuMStdioIn
+    buffer pop .
+
+    return buffer
+. end

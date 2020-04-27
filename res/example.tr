@@ -1,0 +1,81 @@
+// Keywords
+
+// int, float, char
+// push, pop
+// copy
+// struct, add
+// array, type, size
+// sum, minus, mult, div, mod
+// land, lor, eq, diff, grt, lst
+// not, and, or, xor
+// end
+// if, elif, else
+// while
+// func, arg, ret, return
+// import, use
+
+// Special Character
+// 
+// $
+// .
+// *
+// @
+
+// int factorial(int x) {
+//     int res = x;
+// 
+//     while (x > 2) {
+//         x -= 1;
+//         res *= x;
+//     }
+// 
+//     return res;
+// }
+
+factorial func
+    * arg x int
+    * ret int
+
+    res int x
+
+    . while @
+    @ grt x 2
+        x minus x 1
+        res mult res x
+    . end
+
+    . return res
+. end
+
+
+// Variable declaration
+a int
+b float
+c char
+d array int 8
+e array
+    * type int
+    * size 8
+vec2 struct
+    * add x float
+    * add y float
+    * add raw array
+        * add raw int
+        * add raw 8
+
+// Value assign
+b copy 3.4
+c copy '0'
+
+// Stack manipulator
+$ push d 2
+$ copy 32
+. pop
+
+// Math functions
+a sum a 5
+a minus b -2
+$ mult 7 2   // Implicity value push
+b div $ 3    // Implicity value pop
+a mod 14 8
+

@@ -1,0 +1,8 @@
+time_lib import "TuMTime.tlib"
+
+sleep_ms func
+    * arg duration int
+
+    $ push duration
+    $ push time_lib TuMTime
+. end
