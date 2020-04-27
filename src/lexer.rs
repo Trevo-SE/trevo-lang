@@ -153,8 +153,18 @@ fn substring(string: &str, i: usize, j: usize) -> String {
 fn remove_space_inside(line: &str) -> String {
     let mut line = line.to_string();
     let str_regex = Regex::new(r#"".*""#).expect("Cannot create str regex");
+    let char_space_regex = Regex::new(r"' '").expect("Cannot create char space regex");
     let mut i = vec![];
     let mut j = vec![];
+
+    for captures in char_space_regex.captures_iter(&line) {
+        for cap in captures.iter() {
+            if let Some(cap) = cap {
+                i.push(cap.start());
+                j.push(cap.end());
+            }
+        }
+    }
 
     for captures in str_regex.captures_iter(&line) {
         for cap in captures.iter() {
@@ -217,14 +227,14 @@ fn integer_regex(text: &str) -> bool {
 
 fn float_point_regex(text: &str) -> bool {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"^[+-]?[1-9]\d*[.]\d+$").unwrap();
+        static ref RE: Regex = Regex::new(r"^[+-]?[1-9]\d*[\.]\d+$").unwrap();
     }
     RE.is_match(text)
 }
 
 fn char_const_regex(text: &str) -> bool {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r#"^'[a-zA-Z0-9]'$"#).unwrap();
+        static ref RE: Regex = Regex::new(r#"^'(.|\\t|\\r|\\n)'$"#).unwrap();
     }
     RE.is_match(text)
 }
@@ -266,6 +276,9 @@ fn tokenize(filename: &str) -> TRResult<Vec<TRToken>> {
         let segments = split_regex.split(&line).into_iter().collect::<Vec<&str>>();
 
         for s in segments {
+            if s == "" {
+                continue;
+            }
             if keyword_regex(s) {
                 toks.push(TRToken::keyword(s, idx, s_pos.clone()))
             } else if stack_regex(s) {
@@ -279,12 +292,15 @@ fn tokenize(filename: &str) -> TRResult<Vec<TRToken>> {
             } else if float_point_regex(s) {
                 toks.push(TRToken::float_point(s, idx, s_pos.clone()))
             } else if char_const_regex(s) {
-                toks.push(TRToken::char_const(s, idx, s_pos.clone()))
+                let value = &s[1..(s.len()-1)];
+                toks.push(TRToken::char_const(&value.replace("\x07", " "), idx, s_pos.clone()))
             } else if string_const_regex(s) {
                 let value = &s[1..(s.len()-1)].to_string();
                 toks.push(TRToken::string_const(&value.replace("\x07", " "), idx, s_pos.clone()))
             } else if symbol_regex(s) {
                 toks.push(TRToken::symbol(s, idx, s_pos.clone()))
+            } else {
+                return Err(TRError::new(TRErrorKind::UnknownToken, &format!("Token not recognized: {}", s), idx));
             }
             next_statement_pos(&mut s_pos);
         }

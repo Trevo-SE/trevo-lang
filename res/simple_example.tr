@@ -17,3 +17,7 @@ f2 float 2.4     // and a description
 _he2a array
     * type int
     * size 8
+one char
+one copy '1'
+new_line char '\t'
+spaces char ' '
