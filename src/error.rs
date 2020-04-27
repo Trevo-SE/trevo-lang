@@ -8,6 +8,8 @@ pub struct TRError {
 #[derive(Debug)]
 pub enum TRErrorKind {
     UnknownToken,
+    InvalidStatementPosition,
+    InvalidCharConstant,
 }
 
 impl TRError {

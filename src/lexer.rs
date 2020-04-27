@@ -152,19 +152,9 @@ fn substring(string: &str, i: usize, j: usize) -> String {
 
 fn remove_space_inside(line: &str) -> String {
     let mut line = line.to_string();
-    let str_regex = Regex::new(r#"".*""#).expect("Cannot create str regex");
-    let char_space_regex = Regex::new(r"' '").expect("Cannot create char space regex");
+    let str_regex = Regex::new(r#"(".*")|('.*')"#).expect("Cannot create str regex");
     let mut i = vec![];
     let mut j = vec![];
-
-    for captures in char_space_regex.captures_iter(&line) {
-        for cap in captures.iter() {
-            if let Some(cap) = cap {
-                i.push(cap.start());
-                j.push(cap.end());
-            }
-        }
-    }
 
     for captures in str_regex.captures_iter(&line) {
         for cap in captures.iter() {
@@ -234,7 +224,7 @@ fn float_point_regex(text: &str) -> bool {
 
 fn char_const_regex(text: &str) -> bool {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r#"^'(.|\\t|\\r|\\n)'$"#).unwrap();
+        static ref RE: Regex = Regex::new(r"^'.*'$").unwrap();
     }
     RE.is_match(text)
 }
@@ -300,7 +290,8 @@ fn tokenize(filename: &str) -> TRResult<Vec<TRToken>> {
             } else if symbol_regex(s) {
                 toks.push(TRToken::symbol(s, idx, s_pos.clone()))
             } else {
-                return Err(TRError::new(TRErrorKind::UnknownToken, &format!("Token not recognized: {}", s), idx));
+                let value = s.to_string().replace("\x07", " ");
+                return Err(TRError::new(TRErrorKind::UnknownToken, &format!("Token not recognized: {}", value), idx));
             }
             next_statement_pos(&mut s_pos);
         }
@@ -311,6 +302,81 @@ fn tokenize(filename: &str) -> TRResult<Vec<TRToken>> {
     Ok(toks)
 }
 
+fn check_syntax(tokens: Vec<TRToken>) -> TRResult<Vec<TRToken>> {
+
+    for tok in &tokens {
+        match tok.kind {
+            TRTokenKind::BasicType => {
+                match tok.statement_pos {
+                    TRStatementPosition::Return => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The type \"{}\" cannot be the return of a statement", tok.value), tok.line)),
+                    _ => {},
+                }
+            },
+            TRTokenKind::Stack => {
+                match tok.statement_pos {
+                    TRStatementPosition::Function => {},
+                    _ => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The keyword \"{}\" must be the functions of a statement", tok.value), tok.line)),
+                }
+            },
+            TRTokenKind::Keyword => {
+                match tok.statement_pos {
+                    TRStatementPosition::Function => {},
+                    _ => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The keyword \"{}\" must be the functions of a statement", tok.value), tok.line)),
+                }
+            },
+            TRTokenKind::Integer => {
+                match tok.statement_pos {
+                    TRStatementPosition::Return => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The integer constant \"{}\" cannot be the return of a statement", tok.value), tok.line)),
+                    TRStatementPosition::Function => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The integer constant \"{}\" cannot be the function of a statement", tok.value), tok.line)),
+                    _ => {},
+                }
+            },
+            TRTokenKind::FloatPoint => {
+                match tok.statement_pos {
+                    TRStatementPosition::Return => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The float point constant \"{}\" cannot be the return of a statement", tok.value), tok.line)),
+                    TRStatementPosition::Function => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The float point constant \"{}\" cannot be the function of a statement", tok.value), tok.line)),
+                    _ => {},
+                }
+            },
+            TRTokenKind::CharConst => {
+                match tok.statement_pos {
+                    TRStatementPosition::Return => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The char constant '{}' cannot be the return of a statement", tok.value), tok.line)),
+                    TRStatementPosition::Function => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The char constant '{}' cannot be the function of a statement", tok.value), tok.line)),
+                    _ => {},
+                }
+
+                if tok.value.len() == 2 && &tok.value[0..1] != "\\" || tok.value.len() > 2 {
+                    return Err(TRError::new(TRErrorKind::InvalidCharConstant, "The size of char constants must be 1", tok.line));
+                }
+            },
+            TRTokenKind::StringConst => {
+                match tok.statement_pos {
+                    TRStatementPosition::Return => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The string constant \"{}\" cannot be the return of a statement", tok.value), tok.line)),
+                    TRStatementPosition::Function => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The string constant \"{}\" cannot be the function of a statement", tok.value), tok.line)),
+                    _ => {},
+                }
+            },
+            TRTokenKind::Identifier => {},
+            TRTokenKind::Symbol => {
+                match tok.value.as_str() {
+                    "." => match tok.statement_pos {
+                        TRStatementPosition::Return => {},
+                        _ => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, "The symbol \".\" must be the return of a statement", tok.line)),
+                    },
+                    "*" | "$" | "@" => match tok.statement_pos {
+                        TRStatementPosition::Function => return Err(TRError::new(TRErrorKind::InvalidStatementPosition, &format!("The symbol \"{}\" cannot be the function of a statement", tok.value), tok.line)),
+                        _ => {},
+                    },
+                    _ => {},
+                }
+            },
+        }
+    }
+
+    Ok(tokens)
+}
+
 pub fn lexer(filename: &str) -> TRResult<Vec<TRToken>> {
-    tokenize(filename)
+    let tokens = tokenize(filename)?;
+    check_syntax(tokens)
 }

@@ -7,7 +7,7 @@ use lexer::lexer;
 use error::*;
 
 fn main() -> TRResult<()> {
-    let toks = lexer("res/simple_example.tr")?;
+    let toks = lexer("res/example.tr")?;
 
     println!("Tokens: [");
     for t in toks {
